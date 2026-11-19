@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mini Monster RPG</title>
+
+<style>
+body{
+margin:0;
+background:#222;
+font-family:Arial;
+color:white;
+text-align:center;
+}
+
+#world{
+width:320px;
+height:320px;
+margin:10px auto;
+display:grid;
+grid-template-columns:repeat(10,32px);
+grid-template-rows:repeat(10,32px);
+border:4px solid white;
+}
+
+.tile{
+width:32px;
+height:32px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:22px;
+}
+
+.grass{background:#3cae3c;}
+.path{background:#c9b16b;}
+
+#battle{
+display:none;
+background:#111;
+padding:15px;
+margin:10px;
+border-radius:10px;
+}
+
+button{
+padding:10px;
+margin:5px;
+font-size:18px;
+}
+
+.bar{
+height:20px;
+background:#444;
+border-radius:8px;
+overflow:hidden;
+margin:5px;
+}
+
+.fill{
+height:100%;
+background:lime;
+width:100%;
+}
+
+#msg{
+min-height:30px;
+padding:10px;
+}
+</style>
+</head>
+<body>
+
+<h2>Monster RPG</h2>
+
+<div>
+Nivel: <span id="lvl">1</span>
+EXP: <span id="exp">0</span>
+Pokeballs: <span id="balls">5</span>
+</div>
+
+<div id="world"></div>
+
+<div>
+<button onclick="move(-1,0)">⬅️</button>
+<button onclick="move(1,0)">➡️</button>
+<button onclick="move(0,-1)">⬆️</button>
+<button onclick="move(0,1)">⬇️</button>
+</div>
+
+<div id="battle">
+
+<h3 id="enemyName"></h3>
+
+<div>Tu vida</div>
+<div class="bar">
+<div id="playerBar" class="fill"></div>
+</div>
+
+<div>Monstruo</div>
+<div class="bar">
+<div id="enemyBar" class="fill"></div>
+</div>
+
+<button onclick="attack()">⚔️ Atacar</button>
+<button onclick="capture()">🎒 Capturar</button>
+
+<div id="msg"></div>
+
+</div>
+
+<script>
+
+const world=document.getElementById("world");
+
+let player={
+x:5,
+y:5,
+hp:100,
+level:1,
+exp:0,
+balls:5
+};
+
+let enemy=null;
+let inBattle=false;
+
+const monsters=[
+{name:"🐭 Ratox",hp:60},
+{name:"🐢 Tortun",hp:80},
+{name:"🔥 Flamy",hp:70},
+{name:"👻 Ghosty",hp:65},
+{name:"🐍 Serpix",hp:75}
+];
+
+function draw(){
+
+world.innerHTML="";
+
+for(let y=0;y<10;y++){
+
+for(let x=0;x<10;x++){
+
+let d=document.createElement("div");
+
+d.className="tile grass";
+
+if(x===player.x && y===player.y){
+d.innerHTML="😀";
+}
+else{
+d.innerHTML="🌾";
+}
+
+world.appendChild(d);
+
+}
+
+}
+
+}
+
+draw();
+
+function move(dx,dy){
+
+if(inBattle)return;
+
+player.x=Math.max(0,Math.min(9,player.x+dx));
+player.y=Math.max(0,Math.min(9,player.y+dy));
+
+draw();
+
+if(Math.random()<0.25){
+
+startBattle();
+
+}
+
+}
+
+function startBattle(){
+
+inBattle=true;
+
+let base=monsters[
+Math.floor(Math.random()*monsters.length)
+];
+
+enemy={
+name:base.name,
+hp:base.hp,
+max:base.hp
+};
+
+document.getElementById("battle").style.display="block";
+
+document.getElementById("enemyName").innerHTML=
+enemy.name;
+
+updateBars();
+
+text("¡Apareció "+enemy.name+"!");
+
+}
+
+function attack(){
+
+let dmg=Math.floor(Math.random()*20)+10;
+
+enemy.hp-=dmg;
+
+text("Golpeaste por "+dmg);
+
+if(enemy.hp<=0){
+
+winBattle();
+return;
+
+}
+
+enemyAttack();
+
+updateBars();
+
+}
+
+function enemyAttack(){
+
+let dmg=Math.floor(Math.random()*15)+5;
+
+player.hp-=dmg;
+
+if(player.hp<0)player.hp=0;
+
+text(enemy.name+" hizo "+dmg+" daño");
+
+if(player.hp<=0){
+
+alert("Game Over");
+
+player.hp=100;
+player.level=1;
+player.exp=0;
+
+}
+
+updateBars();
+
+}
+
+function capture(){
+
+if(player.balls<=0){
+
+text("Sin Pokeballs");
+return;
+
+}
+
+player.balls--;
+
+document.getElementById("balls").textContent=
+player.balls;
+
+let chance=(enemy.max-enemy.hp)/enemy.max;
+
+if(Math.random()<chance){
+
+text("¡Capturado!");
+
+gainExp(30);
+
+setTimeout(endBattle,1200);
+
+}else{
+
+text("Escapó de la Pokeball");
+
+enemyAttack();
+
+}
+
+}
+
+function winBattle(){
+
+text("¡Victoria!");
+
+gainExp(20);
+
+setTimeout(endBattle,1000);
+
+}
+
+function gainExp(value){
+
+player.exp+=value;
+
+if(player.exp>=100){
+
+player.exp=0;
+player.level++;
+player.hp=100;
+
+alert("Nivel "+player.level);
+
+}
+
+document.getElementById("lvl").textContent=
+player.level;
+
+document.getElementById("exp").textContent=
+player.exp;
+
+}
+
+function endBattle(){
+
+inBattle=false;
+
+document.getElementById("battle").style.display=
+"none";
+
+}
+
+function updateBars(){
+
+document.getElementById("playerBar").style.width=
+player.hp+"%";
+
+document.getElementById("enemyBar").style.width=
+(enemy.hp/enemy.max*100)+"%";
+
+}
+
+function text(t){
+
+document.getElementById("msg").innerText=t;
+
+}
+
+</script>
+
+</body>
+</html>
+
+
+
+
